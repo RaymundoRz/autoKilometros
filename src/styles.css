@@ -1,0 +1,347 @@
+/* Estilo general de la aplicación */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+    color: #333;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    color: #1e3a8a;
+  }
+  
+  button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  button.bg-blue-500 {
+    background-color: #3b82f6;
+    color: white;
+  }
+  
+  button.bg-green-500 {
+    background-color: #22c55e;
+    color: white;
+  }
+  
+  button:hover {
+    filter: brightness(0.9);
+  }
+  
+  /* Estilo para la cuadrícula de imágenes */
+  .grid {
+    display: grid;
+    gap: 1rem;
+    justify-content: center;
+  }
+  
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border: 2px solid #e5e7eb;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+  }
+  
+  img:hover,
+  img.selected {
+    border-color: #3b82f6;
+  }
+  
+  /* Contenedor del Cropper */
+  .relative {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background-color: #e5e7eb;
+    margin-top: 1rem;
+    overflow: hidden;
+  }
+  
+  /* Estilo para el slider de Zoom */
+  .flex {
+    display: flex;
+    align-items: center;
+  }
+  
+  .flex.space-x-4 {
+    gap: 1rem;
+  }
+  
+  input[type="range"] {
+    width: 100%;
+    accent-color: #3b82f6;
+  }
+  
+  /* Tabla de datos extraídos */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  
+  th,
+  td {
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    text-align: center;
+  }
+  
+  th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    overflow: hidden;
+  }
+  
+  .modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #f87171;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  input[type="range"] {
+    accent-color: #3b82f6;
+  }
+
+  .modal-container {
+  position: relative;
+  width: 80%;
+  height: 90%;
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-image-container {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modal-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.modal-zoom-slider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.modal-zoom-slider label {
+  font-weight: bold;
+  margin-right: 1rem;
+}
+
+.modal-zoom-slider input {
+  width: 75%;
+}
+
+.modal-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.modal-button button {
+  background-color: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.modal-button button:hover {
+  background-color: #1d9c4e;
+}
+
+.modal-close-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+/* General */
+.uploader-container {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f9f9f9;
+  }
+  
+  .title {
+    font-size: 24px;
+    color: #1e3a8a;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .button:hover {
+    background-color: #2563eb;
+  }
+  
+  /* Imagenes */
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .image-thumbnail {
+    width: 100%;
+    cursor: pointer;
+    border: 2px solid #ddd;
+    transition: border-color 0.3s;
+  }
+  
+  .image-thumbnail:hover {
+    border-color: #3b82f6;
+  }
+  
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 60%;
+    height: 80%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  
+  .image-container {
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  
+  .modal-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  
+  .zoom-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .extract-button {
+    padding: 10px 20px;
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .extract-button:hover {
+    background-color: #1d9c4e;
+  }
+  
+  
+  
+  

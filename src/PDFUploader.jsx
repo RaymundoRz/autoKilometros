@@ -1,79 +1,28 @@
-import React, { useState } from "react";
+import "./styles.css";
+import React, { useState, useRef } from "react";
 import axios from "axios";
+import Selecto from "react-selecto";
 import StepIndicator from "./components/StepIndicator";
-import BaseTableManager from "./components/BaseTableManager";
-import * as XLSX from "xlsx";
-
-// Función para generar dinámicamente datos de Km, Hasta, Clase, Modelo y Cantidad con errores
-const generateKmHastaClaseModeloData = () => {
-  const kmHastaRanges = [
-    { km: "0", hasta: "5,000" },
-    { km: "5,001", hasta: "10,000" },
-    { km: "10,001", hasta: "15,000" },
-    { km: "15,001", hasta: "20,000" },
-    { km: "20,001", hasta: "25,000" },
-    { km: "25,001", hasta: "30,000" },
-    { km: "30,001", hasta: "35,000" },
-    { km: "35,001", hasta: "40,000" },
-    { km: "40,001", hasta: "50,000" },
-    { km: "50,001", hasta: "60,000" },
-  ];
-
-  const classes = ["A", "B", "C", "D", "E"];
-  const years = [2024, 2023, 2022, 2021, 2020];
-
-  // Datos de Cantidad con errores simulados
-  const faultyQuantities = [
-    "2,300", "3,000", "3#600", "5,3O0", "7x500", "-8,500", "11,1OO", 
-    "13,5OO", "20,00O", "28,200", "NaN", "??", "-1,900", "ERROR", "∞"
-  ];
-
-  const kmHastaClaseModeloData = [];
-  let quantityIndex = 0;
-
-  kmHastaRanges.forEach(({ km, hasta }) => {
-    years.forEach((year) => {
-      classes.forEach((clase) => {
-        const faultyQuantity = faultyQuantities[quantityIndex % faultyQuantities.length];
-        kmHastaClaseModeloData.push({
-          Km: km,
-          Hasta: hasta,
-          Clase: clase,
-          Modelo: year,
-          Cantidad: faultyQuantity, // Cantidad con errores
-        });
-        quantityIndex++;
-      });
-    });
-  });
-
-  return kmHastaClaseModeloData;
-};
 
 const PDFUploader = () => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [downloadUrl, setDownloadUrl] = useState("");
+  const [images, setImages] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [extractedText, setExtractedText] = useState([]);
+  const [selectionArea, setSelectionArea] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [steps, setSteps] = useState([
-    { label: "Select File", description: "Choose a PDF file to upload", status: "in-progress" },
-    { label: "Upload File", description: "Upload the selected PDF", status: "pending" },
-    { label: "Convert File", description: "Convert the PDF to Excel", status: "pending" },
-  ]);
-  const [processedData, setProcessedData] = useState([]);
-  const [isProcessingComplete, setIsProcessingComplete] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+
+  const imageContainerRef = useRef(null);
 
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
-    setSteps((prevSteps) =>
-      prevSteps.map((step, index) =>
-        index === 0 ? { ...step, status: "completed" } : step
-      )
-    );
   };
 
-  const handleUpload = async () => {
+  const handleUploadPDF = async () => {
     if (!selectedFile) {
-      alert("Please select a file to upload.");
+      alert("Selecciona un archivo PDF.");
       return;
     }
 
@@ -81,86 +30,147 @@ const PDFUploader = () => {
     formData.append("pdf", selectedFile);
 
     setIsLoading(true);
-    setSteps((prevSteps) =>
-      prevSteps.map((step, index) =>
-        index === 1 ? { ...step, status: "in-progress" } : step
-      )
-    );
-
     try {
-      const response = await axios.post("http://127.0.0.1:5001/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        responseType: "blob",
-      });
-
-      const fileBlob = response.data;
-      const url = window.URL.createObjectURL(new Blob([fileBlob]));
-      setDownloadUrl(url);
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
-          header: ["Km", "Hasta", "Clase", "Modelo", "Cantidad"],
-        });
-
-        const generatedData = generateKmHastaClaseModeloData();
-        const mergedData = [...generatedData, ...sheetData];
-
-        setProcessedData(mergedData);
-        setIsProcessingComplete(true);
-      };
-      reader.readAsArrayBuffer(fileBlob);
-
-      setSteps((prevSteps) =>
-        prevSteps.map((step, index) =>
-          index === 1
-            ? { ...step, status: "completed" }
-            : index === 2
-            ? { ...step, status: "completed" }
-            : step
-        )
-      );
+      const response = await axios.post("http://127.0.0.1:5001/upload_pdf", formData);
+      setImages(response.data.images);
     } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Failed to process the PDF.");
-      setSteps((prevSteps) =>
-        prevSteps.map((step, index) =>
-          index === 1 || index === 2 ? { ...step, status: "error" } : step
-        )
-      );
+      console.error("Error al subir el PDF:", error);
+      alert("Error al procesar el PDF.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleExtractData = async () => {
+    if (!selectedImage || !selectionArea) {
+      alert("Selecciona una imagen y define un área.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post("http://127.0.0.1:5001/extract_text", {
+        image_path: selectedImage.replace("/images/", ""),
+        cropped_area: selectionArea,
+      });
+
+      console.log("Datos Extraídos:", response.data.data);
+      
+      setExtractedText((prevText) => [
+        ...prevText,
+        { cantidad: response.data.data.join(" ") },
+      ]);
+    } catch (error) {
+      console.error("Error al extraer datos:", error);
+      alert("No se pudieron extraer los datos.");
+    } finally {
+      setIsLoading(false);
+      setShowModal(false);
+    }
+  };
+
+  const handleOpenModal = (img) => {
+    setSelectedImage(img);
+    setShowModal(true);
+    setZoom(1);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectionArea(null);
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-2xl font-bold mb-4">Convertidor de Datos (PDF a Excel)</h1>
-      <StepIndicator steps={steps} />
+    <div className="uploader-container">
+      <h1 className="title">Convertidor de PDF a Datos</h1>
+      <StepIndicator steps={[{ label: "Subir Archivo" }, { label: "Extraer Datos" }]} />
+
+      {/* Subir archivo */}
       <input type="file" accept="application/pdf" onChange={handleFileChange} />
-      <button
-        onClick={handleUpload}
-        disabled={isLoading}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-      >
-        {isLoading ? "Processing..." : "Convert PDF to Excel"}
+      <button onClick={handleUploadPDF} disabled={isLoading} className="button">
+        {isLoading ? "Procesando..." : "Subir PDF"}
       </button>
-      {downloadUrl && (
-        <a
-          href={downloadUrl}
-          download="output.xlsx"
-          className="mt-4 text-blue-600 underline"
-        >
-          Descargar archivo Excel
-        </a>
+
+      {/* Mostrar imágenes */}
+      <div className="image-grid">
+        {images.map((img, index) => (
+          <img
+            key={index}
+            src={`http://127.0.0.1:5001${img}`}
+            alt={`Página ${index + 1}`}
+            className="image-thumbnail"
+            onClick={() => handleOpenModal(img)}
+          />
+        ))}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <button onClick={handleCloseModal} className="close-button">X</button>
+
+            <div className="image-container" ref={imageContainerRef} style={{ zoom: zoom }}>
+              <img
+                src={`http://127.0.0.1:5001${selectedImage}`}
+                alt="Seleccionar área"
+                className="modal-image"
+              />
+              <Selecto
+                container={imageContainerRef.current}
+                selectableTargets={["img"]}
+                selectByClick={true}
+                selectFromInside={true}
+                dragContainer={imageContainerRef.current}
+                onSelectEnd={(e) => {
+                  const rect = e.rect;
+                  const area = {
+                    x: Math.round(rect.left),
+                    y: Math.round(rect.top),
+                    width: Math.round(rect.width),
+                    height: Math.round(rect.height),
+                  };
+                  setSelectionArea(area);
+                  alert(`Coordenadas recibidas:\nX: ${area.x}, Y: ${area.y}\nW: ${area.width}, H: ${area.height}`);
+                }}
+              />
+            </div>
+
+            <div className="zoom-container">
+              <label>Zoom:</label>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.1"
+                value={zoom}
+                onChange={(e) => setZoom(e.target.value)}
+              />
+            </div>
+
+            <button onClick={handleExtractData} className="extract-button">Extraer Datos</button>
+          </div>
+        </div>
       )}
-      {isProcessingComplete && processedData.length > 0 && (
-        <div className="mt-8 w-full">
-          <h2 className="text-xl font-bold mb-4">Datos Procesados</h2>
-          <BaseTableManager rows={processedData} setRows={setProcessedData} />
+
+      {/* Datos extraídos */}
+      {extractedText.length > 0 && (
+        <div className="data-container">
+          <h2>Datos Extraídos</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {extractedText.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.cantidad}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

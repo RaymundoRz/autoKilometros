@@ -3,15 +3,18 @@ from flask_cors import CORS
 from pdf2image import convert_from_path
 from PIL import Image
 import pytesseract
+import pandas as pd
 import os
 import uuid
+import cv2
+import numpy as np  # Asegúrate de importar numpy
 
 app = Flask(__name__)
 CORS(app)
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "backend", "uploads")
 IMAGES_FOLDER = os.path.join(os.getcwd(), "backend", "images")
-OUTPUT_FOLDER = os.path.join(os.getcwd(), "backend", "outputs") 
+OUTPUT_FOLDER = os.path.join(os.getcwd(), "backend", "outputs")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(IMAGES_FOLDER, exist_ok=True)
@@ -38,7 +41,6 @@ def upload_pdf():
             image.save(image_path, "PNG")
             image_paths.append(f"/images/page_{i + 1}.png")
 
-        # Retornar las rutas de las imágenes generadas
         return jsonify({"images": image_paths}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -53,35 +55,62 @@ def serve_image(filename):
 
 @app.route("/extract_text", methods=["POST"])
 def extract_text():
-    """Seleccionar una imagen y aplicar OCR para extraer texto formateado."""
+    """Seleccionar una imagen y aplicar OCR con extracción de tablas."""
     data = request.get_json()
     image_path = os.path.join(IMAGES_FOLDER, data.get("image_path"))
-    cropped_area = data.get("cropped_area")  # Área seleccionada
+    cropped_area = data.get("cropped_area")
 
     if not os.path.exists(image_path):
         return jsonify({"error": "Image file not found"}), 400
 
     try:
+        # 1. Cargar la imagen original
         image = Image.open(image_path)
 
-        # Recortar la imagen según el área seleccionada
+        # 2. Recortar la imagen si se reciben coordenadas
         if cropped_area:
             x = cropped_area["x"]
             y = cropped_area["y"]
             width = cropped_area["width"]
             height = cropped_area["height"]
+            
+            # Verificar que las coordenadas estén dentro de la imagen
+            img_width, img_height = image.size
+            if x < 0 or y < 0 or x + width > img_width or y + height > img_height:
+                return jsonify({"error": "Cropped area is out of image bounds"}), 400
+
+            # Recortar el área seleccionada
             image = image.crop((x, y, x + width, y + height))
 
-        ocr_result = pytesseract.image_to_string(image, config="--psm 6")
+        # Convertir la imagen recortada a escala de grises y procesarla con OpenCV
+        image_cv = cv2.cvtColor(cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR), cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(image_cv, 150, 255, cv2.THRESH_BINARY_INV)
 
-        # Procesar el texto para formatearlo en filas delimitadas por comas
-        rows = ocr_result.strip().split("\n")
-        formatted_rows = [",".join(row.split()) for row in rows]
+        # 3. Aplicar OCR con pytesseract
+        ocr_result = pytesseract.image_to_string(thresh, config="--psm 6")
 
-        return jsonify({"data": formatted_rows}), 200
+        # 4. Procesar texto en filas y columnas
+        lines = ocr_result.strip().split("\n")
+        cleaned_data = []
+        for line in lines:
+            row = line.split()
+            if row:
+                cleaned_data.append(row)
+
+        # 5. Normalizar filas con mismo número de columnas
+        max_columns = max(len(row) for row in cleaned_data)
+        normalized_data = [row + [''] * (max_columns - len(row)) for row in cleaned_data]
+
+        # 6. Convertir a DataFrame y a CSV
+        df = pd.DataFrame(normalized_data)
+        csv_path = os.path.join(OUTPUT_FOLDER, "extracted_table.csv")
+        df.to_csv(csv_path, index=False, header=False)
+
+        # Retornar los datos en formato JSON
+        formatted_rows = df.apply(lambda row: row.tolist(), axis=1).tolist()
+        return jsonify({"data": formatted_rows, "csv_path": csv_path}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/download_csv", methods=["GET"])
 def download_csv():
